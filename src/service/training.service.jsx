@@ -84,7 +84,7 @@ export const addProgram = async (data) => {
 
 export const editProgram = async (data) => {
     try {
-        const response = await axios.put( `${API_URL}api/training/edit-program`, data, { headers: {'Content-Type': 'application/json', ...authHeader() }});
+        const response = await axios.put(`${API_URL}api/training/edit-program`, data, { headers: { 'Content-Type': 'application/json', ...authHeader() } });
         return response.data;
     } catch (error) {
         console.error("Error updating program", error);
@@ -103,7 +103,7 @@ export const addOrganizer = async (data) => {
 
 export const editOrganizer = async (data) => {
     try {
-        const response = await axios.put( `${API_URL}api/training/edit-organizer`, data, { headers: {'Content-Type': 'application/json', ...authHeader() }});
+        const response = await axios.put(`${API_URL}api/training/edit-organizer`, data, { headers: { 'Content-Type': 'application/json', ...authHeader() } });
         return response.data;
     } catch (error) {
         console.error("Error updating organizer", error);
@@ -253,9 +253,10 @@ export const getRequisitionPrint = async (id) => {
 
 export const getRequisitionApprovals = async (id) => {
     try {
-        return (await axios.get(`${API_URL}api/training/req-approval-list`, { 
+        return (await axios.get(`${API_URL}api/training/req-approval-list`, {
             params: { empId: id },
-            headers: { 'Content-Type': 'application/json', ...authHeader() } })).data;
+            headers: { 'Content-Type': 'application/json', ...authHeader() }
+        })).data;
     } catch (error) {
         console.error('Error occurred in getRequisitionPrint():', error);
         throw error;
@@ -280,9 +281,12 @@ export const addEvaluation = async (data) => {
     }
 };
 
-export const getEvaluationList = async () => {
+export const getEvaluationList = async (fromDate, toDate) => {
     try {
-        return (await axios.get(`${API_URL}api/training/evaluation`, { headers: { 'Content-Type': 'application/json', ...authHeader() } })).data;
+        return (await axios.get(`${API_URL}api/training/evaluation`, {
+            params: { fromDate, toDate },
+            headers: { 'Content-Type': 'application/json', ...authHeader() }
+        })).data;
     } catch (error) {
         console.error('Error occurred in getEvaluationList():', error);
         throw error;

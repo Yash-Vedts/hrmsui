@@ -50,10 +50,10 @@ const Navbar = () => {
         try {
             const moduleDetailListResponse = await getHeaderModuleDetailList(roleId);
             setHeaderModuleDetailList(moduleDetailListResponse);
-              const notifiCount = await getNotifiCount();
-              const notifiList = await getNotifiList();
-              setNotifiCount(notifiCount);
-              setNotifiList(notifiList);
+            const notifiCount = await getNotifiCount();
+            const notifiList = await getNotifiList();
+            setNotifiCount(notifiCount);
+            setNotifiList(notifiList);
 
         } catch (error) {
             console.error('Error fetching Header Module Detail list:', error);
@@ -83,6 +83,14 @@ const Navbar = () => {
         }
     };
 
+    const formatName = () => {
+        const cleanTitle = (title && title !== "null") ? title : (salutation && salutation !== "null") ? salutation : "";
+        const cleanName = (empName && empName !== "null") ? empName : "";
+        const cleanDesignation = (designationCode && designationCode !== "null") ? `, ${designationCode}` : "";
+
+        return `${cleanTitle} ${cleanName}`.trim() + cleanDesignation;
+    };
+
     return (
         <nav className="navbar sticky-top navbar-expand-lg navbar-dark bg-dark-new nav-ams">
             <div className="row w-100">
@@ -98,11 +106,8 @@ const Navbar = () => {
                                             <span className="neon-text">HRMS</span>
                                         </h3>
 
-                                        <h6
-                                            className="mb-0 d-flex align-items-end login-name"
-                                            style={{ fontSize: "1rem" }}
-                                        >
-                                            {title ?? salutation ?? ''} {empName ?? ''}{designationCode ? `, ${designationCode}` : ''}
+                                        <h6 className="mb-0 d-flex align-items-end login-name" style={{ fontSize: "1rem" }}>
+                                            {formatName()}
                                         </h6>
                                     </div>
                                 </a>

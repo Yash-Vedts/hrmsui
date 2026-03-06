@@ -12,6 +12,22 @@ import "./Training.css";
 import { FaArrowRight } from "react-icons/fa";
 import { FaFilePdf } from "react-icons/fa6";
 import EvaluationPrint from "../print/evaluation";
+import DatePicker from "react-datepicker";
+
+
+export const getFinancialYearRange = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    const startYear = month >= 3 ? year : year - 1;
+
+    return {
+        startDate: new Date(startYear, 3, 1),
+        endDate: new Date(startYear + 1, 2, 31),
+    };
+};
+
 
 const Evaluation = () => {
 
@@ -19,8 +35,19 @@ const Evaluation = () => {
     const [employeeList, setEmployeeList] = useState([]);
     const [requisitionList, setRequisitionList] = useState([]);
     const [evaluationList, setEvaluationList] = useState([]);
+
     const roleName = localStorage.getItem("roleName");
     const empId = localStorage.getItem("empId");
+    const title = localStorage.getItem("title");
+    const salutation = localStorage.getItem("salutation");
+    const empName = localStorage.getItem("empName");
+    const designationCode = localStorage.getItem("designationCode");
+
+    const [empData, setEmpData] = useState(null);
+
+    const { startDate, endDate } = getFinancialYearRange();
+    const [fromDate, setFromDate] = useState(startDate || new Date());
+    const [toDate, setToDate] = useState(endDate || new Date());
 
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -29,12 +56,20 @@ const Evaluation = () => {
     useEffect(() => {
         fetchEmployees();
         fetchRequisitions();
-        fetchEvaluations();
     }, []);
 
-    const fetchEvaluations = async () => {
+    useEffect(() => {
+        if (fromDate && toDate) {
+            fetchEvaluations(fromDate, toDate);
+        }
+    }, [fromDate, toDate]);
+
+    const fetchEvaluations = async (from, to) => {
         try {
-            const response = await getEvaluationList();
+            if (!from || !to) return;
+            const formatFromDate = format(from, "yyyy-MM-dd");
+            const formatToDate = format(to, "yyyy-MM-dd");
+            const response = await getEvaluationList(formatFromDate, formatToDate);
             setEvaluationList(response?.data || []);
         } catch (error) {
             console.error("Error fetching evaluation:", error);
@@ -60,58 +95,21 @@ const Evaluation = () => {
         }
     };
 
-
-    const handleAdd = () => {
-        setShowModal(true);
-    };
-
     const [initialValues, setInitialValues] = useState({
         initiator: "",
-        evaluation: []
+        evaluationData: {}
     });
 
     const validationSchema = Yup.object().shape({
-        initiator: Yup.string().required("Employee is required"),
+        initiator: Yup.string().notRequired(),
 
-        evaluation: Yup.array().of(
-            Yup.object().shape({
-                program: Yup.string().required(),
-                fromDate: Yup.date().nullable().required(),
-                toDate: Yup.date().nullable().required(),
-                impact: Yup.string().required("Impact is required")
-            })
-        )
+        evaluationData: Yup.object().shape({
+            program: Yup.string().required(),
+            fromDate: Yup.date().nullable().required(),
+            toDate: Yup.date().nullable().required(),
+            impact: Yup.string().required("Impact is required")
+        })
     });
-
-    const handleEmployeeChange = (selected, setFieldValue) => {
-
-        const empId = selected?.value || "";
-        setFieldValue("initiator", empId);
-
-        if (!empId) {
-            setFieldValue("evaluation", []);
-            return;
-        }
-
-        const existingProgramIds = (evaluationList || [])
-            .filter(emp => emp?.initiator === empId)
-            .flatMap(emp => emp?.evaluation || [])
-            .map(ev => ev?.programId);
-
-        const matchedPrograms = (requisitionList || [])
-            .filter(r => r?.initiatingOfficer === empId)
-            .filter(r => !existingProgramIds.includes(r?.programId))
-            .map(r => ({
-                requisitionId: r?.requisitionId,
-                programId: r?.programId,
-                program: r?.programName,
-                fromDate: r?.fromDate,
-                toDate: r?.toDate,
-                impact: ""
-            }));
-
-        setFieldValue("evaluation", matchedPrograms);
-    };
 
 
     const handleSubmit = async (values, { resetForm, setSubmitting }) => {
@@ -130,7 +128,7 @@ const Evaluation = () => {
                 });
                 resetForm();
                 setShowModal(false);
-                fetchEvaluations();
+                fetchEvaluations(fromDate, toDate);
             } else {
                 Swal.fire("Warning", response.message, "warning");
             }
@@ -141,10 +139,13 @@ const Evaluation = () => {
         }
     };
 
-    const employeeOptions = employeeList.map(data => ({
-        value: data?.empId,
-        label: ((data.title || "") + ' ' + data.empName + ", " + (data.empDesigName || "")).trim(),
-    }));
+    const formatName = () => {
+        const cleanTitle = (title && title !== "null") ? title : (salutation && salutation !== "null") ? salutation : "";
+        const cleanName = (empName && empName !== "null") ? empName : "";
+        const cleanDesignation = (designationCode && designationCode !== "null") ? `, ${designationCode}` : "";
+
+        return `${cleanTitle} ${cleanName}`.trim() + cleanDesignation;
+    };
 
     const impactOptions = [
         { value: "E", label: "Excellent" },
@@ -158,7 +159,61 @@ const Evaluation = () => {
         return impactOptions.find(o => o.value === code)?.label || code;
     };
 
-    const filteredList = evaluationList.filter((emp) => {
+    const evaluationMap = new Map(
+        (evaluationList || []).map(e => [e.initiator, e])
+    );
+
+    const requisitionMap = new Map();
+    (requisitionList || []).forEach(r => {
+        if (!requisitionMap.has(r.initiatingOfficer)) {
+            requisitionMap.set(r.initiatingOfficer, []);
+        }
+
+        requisitionMap.get(r.initiatingOfficer).push({
+            requisitionId: r.requisitionId,
+            programId: r.programId,
+            program: r.programName,
+            fromDate: r.fromDate,
+            toDate: r.toDate,
+            impact: ""
+        });
+    });
+
+
+    const mergedEvaluationList = employeeList.reduce((result, emp) => {
+
+        const existingEval = evaluationMap.get(emp.empId);
+        const existEvaluation = existingEval?.evaluation || [];
+
+        const existingProgramIds = new Set(
+            existEvaluation.map(p => p.programId)
+        );
+
+        const reqPrograms = requisitionMap.get(emp.empId) || [];
+
+        const newPrograms = reqPrograms.filter(
+            p => !existingProgramIds.has(p.programId)
+        );
+
+        const mergedPrograms = [...existEvaluation, ...newPrograms]
+            .sort((a, b) => new Date(b.fromDate || 0) - new Date(a.fromDate || 0));
+
+        if (mergedPrograms.length > 0) {
+            result.push({
+                initiator: emp.empId,
+                empName: emp.empName,
+                designation: emp.empDesigName,
+                title: emp.title ? emp.title : (emp.salutation ? emp.salutation : ""),
+                evaluation: mergedPrograms
+            });
+        }
+
+        return result;
+
+    }, []);
+
+
+    const filteredList = mergedEvaluationList.filter((emp) => {
         const search = searchText.toLowerCase();
 
         const empMatch =
@@ -177,7 +232,7 @@ const Evaluation = () => {
         return empMatch || programMatch || impactMatch;
     });
 
-    const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+    const totalPages = Math.max(1, Math.ceil(filteredList.length / itemsPerPage));
 
     const paginatedList = filteredList.slice(
         (currentPage - 1) * itemsPerPage,
@@ -197,15 +252,9 @@ const Evaluation = () => {
                 return;
             }
 
-            const empData = employeeList?.find((e) => e.empId === Number(empId));
-            if (!empData) {
-                Swal.fire("Error", "Employee details not found.", "error");
-                return;
-            }
-
-            const empName = (empData?.title ?? empData?.salutation ?? "") +
-                " " + (empData?.empName ?? "") + ", " + (empData?.empDesigName ?? "");
+            const empName = formatName();
             await EvaluationPrint(response.data, empName);
+
         } catch (error) {
             console.error("Print Error:", error);
             Swal.fire("Error", "Something went wrong while generating the PDF.", "error");
@@ -213,6 +262,8 @@ const Evaluation = () => {
     };
 
     const getPageNumbers = () => {
+        if (!totalPages || totalPages < 1) return [];
+
         const pages = [];
         const maxVisible = 5;
 
@@ -240,6 +291,17 @@ const Evaluation = () => {
         return pages;
     };
 
+    const handleAddImpact = (emp, prog) => {
+        setShowModal(true);
+        setEmpData(emp);
+        setInitialValues({
+            initiator: emp.initiator,
+            evaluationData: prog
+        });
+    };
+
+
+
     return (
         <div>
             <Navbar />
@@ -255,8 +317,8 @@ const Evaluation = () => {
 
             <div className="container mt-5">
 
-                <div className="row mb-3">
-                    <div className="col-md-6 col-lg-4 custom-modal-body">
+                <div className="row mb-3 custom-modal-body">
+                    <div className="col-md-6 col-lg-4">
                         <input
                             type="text"
                             className="form-control"
@@ -270,9 +332,34 @@ const Evaluation = () => {
                     </div>
 
                     <div className="col-md-6 col-lg-8 d-flex justify-content-md-end mt-2 mt-md-0">
-                        <button className="add" onClick={handleAdd}>
-                            CREATE NEW
-                        </button>
+                        <div className="col-md-3 mb-3 me-2">
+                            <DatePicker
+                                selected={fromDate}
+                                onChange={(date) => setFromDate(date)}
+                                className="form-control"
+                                dateFormat="dd-MM-yyyy"
+                                showYearDropdown
+                                showMonthDropdown
+                                dropdownMode="select"
+                                placeholderText="From Date"
+                                onKeyDown={(event) => event.preventDefault()}
+                            />
+                        </div>
+
+                        <div className="col-md-3 mb-3">
+                            <DatePicker
+                                selected={toDate}
+                                onChange={(date) => setToDate(date)}
+                                className="form-control"
+                                dateFormat="dd-MM-yyyy"
+                                minDate={fromDate}
+                                showYearDropdown
+                                showMonthDropdown
+                                dropdownMode="select"
+                                placeholderText="To Date"
+                                onKeyDown={(event) => event.preventDefault()}
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -305,9 +392,19 @@ const Evaluation = () => {
                                                     {format(new Date(prog.fromDate), "dd-MM-yyyy")} <FaArrowRight className="mb-1" /> {format(new Date(prog.toDate), "dd-MM-yyyy")}
                                                 </div>
                                             </div>
-                                            <div className={`impact-badge impact-${prog.impact}`}>
-                                                {getImpactLabel(prog.impact)}
-                                            </div>
+                                            {prog.impact ? (
+                                                <div className={`impact-badge impact-${prog.impact}`}>
+                                                    {getImpactLabel(prog.impact)}
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    className="btn btn-sm btn-secondary"
+                                                    onClick={() => handleAddImpact(emp, prog)}
+                                                    title="Add Impact"
+                                                >
+                                                    ADD
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -316,7 +413,7 @@ const Evaluation = () => {
                     ))}
                 </div>
 
-                {totalPages && (
+                {totalPages && totalPages > 0 && (
                     <div className="d-flex justify-content-end mt-4">
                         <ul className="pagination">
 
@@ -366,7 +463,7 @@ const Evaluation = () => {
                         <div className="modal-dialog modal-xl">
                             <div className="modal-content">
                                 <div className="modal-header custom-modal-header">
-                                    <h5 className="modal-title"><span className="cs-head-text">Create Evaluation</span></h5>
+                                    <h5 className="modal-title"><span className="cs-head-text">Fill Evaluation Impacts</span></h5>
                                     <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
                                 </div>
                                 <div className="modal-body custom-modal-body">
@@ -382,21 +479,20 @@ const Evaluation = () => {
                                                 <div className="row mb-4 align-items-center">
                                                     <div className="col-md-4 text-end">
                                                         <label className="form-label fw-semibold">
-                                                            Select Employee
+                                                            Employee Name :
                                                         </label>
                                                     </div>
                                                     <div className="col-md-5">
-                                                        <Select
-                                                            className="cs-select"
-                                                            options={employeeOptions}
-                                                            value={employeeOptions.find(o => o.value === values.initiator)}
-                                                            onChange={(o) => handleEmployeeChange(o, setFieldValue)}
+                                                        <Field
+                                                            name="employeeName"
+                                                            className="form-control"
+                                                            value={`${empData?.title || ""} ${empData?.empName || ""}, ${empData?.designation || ""}`}
+                                                            disabled
                                                         />
-                                                        <ErrorMessage name="initiator" component="div" className="invalid-msg" />
                                                     </div>
                                                 </div>
 
-                                                {values.evaluation.length > 0 ? (
+                                                {values.evaluationData && Object.keys(values.evaluationData).length > 0 ? (
                                                     <div className="card shadow-sm border-0 mt-3">
                                                         <div className="card-header cs-card-header">
                                                             Training Details
@@ -404,68 +500,66 @@ const Evaluation = () => {
 
                                                         <div className="card-body">
 
-                                                            {values.evaluation.map((item, index) => (
-                                                                <div key={index} className="row mb-2 p-1 align-items-end">
+                                                            <div className="row mb-2 p-1 align-items-end">
 
-                                                                    <div className="col-md-5">
-                                                                        <label className="form-label">Program</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-control"
-                                                                            value={item.program}
-                                                                            disabled
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="col-md-2">
-                                                                        <label className="form-label">From</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-control"
-                                                                            value={format(new Date(item.fromDate), "dd-MM-yyyy")}
-                                                                            disabled
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="col-md-2">
-                                                                        <label className="form-label">To</label>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-control"
-                                                                            value={format(new Date(item.toDate), "dd-MM-yyyy")}
-                                                                            disabled
-                                                                        />
-                                                                    </div>
-
-                                                                    <div className="col-md-3">
-                                                                        <label className="form-label">
-                                                                            Impact <span className="text-danger">*</span>
-                                                                        </label>
-
-                                                                        <Select
-                                                                            className="cs-emp-select"
-                                                                            options={impactOptions}
-                                                                            value={impactOptions.find(o => o.value === item.impact) || null}
-                                                                            onChange={(selectedOption) =>
-                                                                                setFieldValue(
-                                                                                    `evaluation.${index}.impact`,
-                                                                                    selectedOption?.value || ""
-                                                                                )
-                                                                            }
-                                                                            name={`evaluation.${index}.impact`}
-                                                                            placeholder="Select Impact"
-                                                                            isClearable
-                                                                        />
-
-                                                                        <ErrorMessage
-                                                                            name={`evaluation.${index}.impact`}
-                                                                            component="div"
-                                                                            className="invalid-msg"
-                                                                        />
-                                                                    </div>
-
+                                                                <div className="col-md-5">
+                                                                    <label className="form-label">Program</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="form-control"
+                                                                        value={values.evaluationData.program}
+                                                                        disabled
+                                                                    />
                                                                 </div>
-                                                            ))}
+
+                                                                <div className="col-md-2">
+                                                                    <label className="form-label">From</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="form-control"
+                                                                        value={format(new Date(values.evaluationData.fromDate), "dd-MM-yyyy")}
+                                                                        disabled
+                                                                    />
+                                                                </div>
+
+                                                                <div className="col-md-2">
+                                                                    <label className="form-label">To</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="form-control"
+                                                                        value={format(new Date(values.evaluationData.toDate), "dd-MM-yyyy")}
+                                                                        disabled
+                                                                    />
+                                                                </div>
+
+                                                                <div className="col-md-3">
+                                                                    <label className="form-label">
+                                                                        Impact <span className="text-danger">*</span>
+                                                                    </label>
+
+                                                                    <Select
+                                                                        className="cs-emp-select"
+                                                                        options={impactOptions}
+                                                                        value={impactOptions.find(o => o.value === values.evaluationData.impact) || null}
+                                                                        onChange={(selectedOption) =>
+                                                                            setFieldValue(
+                                                                                `evaluationData.impact`,
+                                                                                selectedOption?.value || ""
+                                                                            )
+                                                                        }
+                                                                        name={`evaluationData.impact`}
+                                                                        placeholder="Select Impact"
+                                                                        isClearable
+                                                                    />
+
+                                                                    <ErrorMessage
+                                                                        name={`evaluationData.impact`}
+                                                                        component="div"
+                                                                        className="invalid-msg"
+                                                                    />
+                                                                </div>
+
+                                                            </div>
 
                                                         </div>
                                                     </div>
