@@ -52,7 +52,7 @@ const RequisitionPreview = ({ reqData, setShowModal }) => {
                             <div className="container-fluid view-container">
                                 <div className="row g-3 text-start">
 
-                                    <div className="col-md-3 view-field">
+                                    <div className="col-md-6 view-field">
                                         <span className="view-label">Name of the Course</span>
                                         <div className="view-value">{reqData?.courseName || "-"}</div>
                                     </div>
@@ -72,12 +72,12 @@ const RequisitionPreview = ({ reqData, setShowModal }) => {
                                         <div className="view-value">{reqData?.duration || "-"} Days</div>
                                     </div>
 
-                                    <div className="col-md-3 view-field">
+                                    <div className="col-md-2 view-field">
                                         <span className="view-label">Organized By</span>
                                         <div className="view-value">{reqData?.organizer || "-"}</div>
                                     </div>
 
-                                    <div className="col-md-4 view-field">
+                                    <div className="col-md-3 view-field">
                                         <span className="view-label">Reference</span>
                                         <div className="view-value">{reqData?.reference || "-"}</div>
                                     </div>
@@ -87,10 +87,10 @@ const RequisitionPreview = ({ reqData, setShowModal }) => {
                                         <div className="view-value">{reqData?.venue || "-"}</div>
                                     </div>
 
-                                    <div className="col-md-4 view-field">
+                                    <div className="col-md-3 view-field">
                                         <span className="view-label">Registration Fee</span>
                                         <div className="view-value">
-                                            {reqData.registrationFee > 0 ? `₹ ${reqData.registrationFee}` : "Free"}
+                                            {reqData.offlineRegistrationFee > 0 ? `₹ ${reqData.offlineRegistrationFee}` : "Free"}
                                         </div>
                                     </div>
 

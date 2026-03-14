@@ -17,7 +17,7 @@ export const RoleAccessProvider = ({ children }) => {
 
     const fetchPermissions = async (roleId) => {
         try {
-            const res = await getFormRoleAccessList(roleId,0);
+            const res = await getFormRoleAccessList(roleId,"0");
             setPermissions(res || []);
         } catch (error) {
             console.error("Permission fetch error", error);

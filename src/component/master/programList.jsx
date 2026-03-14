@@ -31,14 +31,15 @@ const ProgramList = () => {
     const [selectedOrgId, setselectedOrgId] = useState(0);
 
     const programFeilds = {
+        courseCode: "",
         courseId: "",
         courseName: "",
         organizerId: "",
         eligibilityId: null,
         fromDate: null,
         toDate: null,
-        registrationFee: null,
-        isRegistration: "N",
+        offlineRegistrationFee: 0,
+        onlineRegistrationFee: null,
         venue: "",
     };
 
@@ -87,26 +88,30 @@ const ProgramList = () => {
 
     const columns = [
         { name: "SN", selector: (row) => row.sn, sortable: true, align: 'text-center' },
-        { name: "Course", selector: (row) => row.courseName, sortable: true, align: 'text-left' },
+        { name: "Course Code", selector: (row) => row.courseCode, sortable: true, align: 'text-center' },
+        { name: "Course Name", selector: (row) => row.courseName, sortable: true, align: 'text-left' },
         { name: "Organizer", selector: (row) => row.organizer, sortable: true, align: 'text-left' },
         { name: "Venue", selector: (row) => row.venue, sortable: true, align: 'text-left' },
         { name: "Eligibility", selector: (row) => row.eligibility, sortable: true, align: 'text-left' },
         { name: "From Date", selector: (row) => row.fromDate, sortable: true, align: 'text-center' },
         { name: "To Date", selector: (row) => row.toDate, sortable: true, align: 'text-center' },
-        { name: "Registration Fee", selector: (row) => row.registrationFee, sortable: true, align: 'text-center' },
+        { name: "Offline Fee (₹)", selector: (row) => row.offlineRegistrationFee, sortable: true, align: 'text-center' },
+        { name: "Online Fee (₹)", selector: (row) => row.onlineRegistrationFee, sortable: true, align: 'text-center' },
         ...(canEdit ? [{ name: "Action", selector: (row) => row.action, sortable: false, align: "text-center", }] : [])
     ];
 
     const mappedData = () => {
         return filterOrganizeList.map((item, index) => ({
             sn: index + 1,
+            courseCode: item.courseCode || "NA",
             courseName: item.courseName || "-",
             organizer: item.organizer || "-",
             venue: item.venue || "-",
             eligibility: item.eligibilityName || "-",
             fromDate: item.fromDate ? format(new Date(item.fromDate), "dd-MM-yyyy") : "-",
             toDate: item.toDate ? format(new Date(item.toDate), "dd-MM-yyyy") : "-",
-            registrationFee: item.registrationFee || "-",
+            offlineRegistrationFee: item.offlineRegistrationFee || "-",
+            onlineRegistrationFee: item.onlineRegistrationFee || "-",
             action: (
                 <>
                     <Tooltip id="Tooltip" className='text-white' />
@@ -128,13 +133,14 @@ const ProgramList = () => {
         setEditMode(true);
         setInitialValues({
             courseId: item?.courseId || "",
+            courseCode: item?.courseCode || "",
             courseName: item?.courseName || "",
             organizerId: item?.organizerId || "",
             eligibilityId: item?.eligibilityId || "",
             fromDate: item?.fromDate || null,
             toDate: item?.toDate || null,
-            registrationFee: item?.registrationFee || null,
-            isRegistration: Number(item?.registrationFee) > 0 ? "Y" : "N",
+            offlineRegistrationFee: item?.offlineRegistrationFee || 0,
+            onlineRegistrationFee: item?.onlineRegistrationFee || null,
             venue: item?.venue || "",
         });
         setShowProgramModal(true);
@@ -143,22 +149,25 @@ const ProgramList = () => {
 
     const programSchema = Yup.object().shape({
         courseName: Yup.string().trim().required("Course Name is required"),
+        courseCode: Yup.string().trim().notRequired(),
         organizerId: Yup.string().required("Organized By is required"),
         eligibilityId: Yup.string().required("Eligibility is required"),
         fromDate: Yup.date().required("From Date is required"),
         toDate: Yup.date()
             .required("To Date is required")
             .min(Yup.ref("fromDate"), "To Date must be after From Date"),
-        isRegistration: Yup.string().required("Please specify if registration fee is applicable"),
-        registrationFee: Yup.number().when("isRegistration", {
-            is: "Y",
-            then: (schema) =>
-                schema
-                    .typeError("Registration Fee must be a number")
-                    .required("Registration Fee is required")
-                    .positive("Registration Fee must be positive"),
-            otherwise: (schema) => schema.nullable(),
-        }),
+        offlineRegistrationFee: Yup.number()
+            .typeError("Amount must be a number")
+            .transform((value, originalValue) =>
+                originalValue === "" ? undefined : value
+            )
+            .required("Offline Fee is required")
+            .min(0, "Amount cannot be negative"),
+        onlineRegistrationFee: Yup.number()
+            .typeError("Amount must be a number")
+            .min(0, "Amount cannot be negative")
+            .nullable()
+            .transform((value, originalValue) => originalValue === "" ? null : value),
         venue: Yup.string().trim().required("Venue is required"),
     });
 
@@ -192,7 +201,8 @@ const ProgramList = () => {
         try {
             const dto = {
                 ...values,
-                registrationFee: values.isRegistration === "Y" ? values.registrationFee : 0,
+                fromDate: format(new Date(values.fromDate), "yyyy-MM-dd"),
+                toDate: format(new Date(values.toDate), "yyyy-MM-dd"),
             }
 
             const confirm = await AlertConfirmation({ title: "Are you sure!", message: '' });
@@ -360,8 +370,19 @@ const ProgramList = () => {
 
                                                 <div className="row text-start">
 
-                                                    <div className="col-md-6 mb-3">
-                                                        <label className="form-label">Course Name</label>
+                                                    <div className="col-md-4 mb-3">
+                                                        <label className="form-label">Course Code (Optional)</label>
+                                                        <Field
+                                                            name="courseCode"
+                                                            className="form-control"
+                                                        />
+                                                        <ErrorMessage name="courseCode" component="div" className="invalid-msg" />
+                                                    </div>
+
+                                                    <div className="col-md-8 mb-3">
+                                                        <label className="form-label">Course Name
+                                                            <span className="text-danger">*</span>
+                                                        </label>
                                                         <Field
                                                             name="courseName"
                                                             className="form-control"
@@ -369,8 +390,10 @@ const ProgramList = () => {
                                                         <ErrorMessage name="courseName" component="div" className="invalid-msg" />
                                                     </div>
 
-                                                    <div className="col-md-6 mb-3">
-                                                        <label className="form-label">Organized By</label>
+                                                    <div className="col-md-4 mb-3">
+                                                        <label className="form-label">Organized By
+                                                            <span className="text-danger">*</span>
+                                                        </label>
                                                         <Select
                                                             options={agencyOptions}
                                                             value={agencyOptions.find((item) => item.value === Number(values.organizerId)) || null}
@@ -381,8 +404,10 @@ const ProgramList = () => {
                                                         <ErrorMessage name="organizerId" component="div" className="invalid-msg" />
                                                     </div>
 
-                                                    <div className="col-md-3 mb-3">
-                                                        <label className="form-label">From Date</label>
+                                                    <div className="col-md-4 mb-3">
+                                                        <label className="form-label">From Date
+                                                            <span className="text-danger">*</span>
+                                                        </label>
                                                         <DatePicker
                                                             selected={values.fromDate}
                                                             onChange={(date) =>
@@ -398,8 +423,10 @@ const ProgramList = () => {
                                                         <ErrorMessage name="fromDate" component="div" className="invalid-msg" />
                                                     </div>
 
-                                                    <div className="col-md-3 mb-3">
-                                                        <label className="form-label">To Date</label>
+                                                    <div className="col-md-4 mb-3">
+                                                        <label className="form-label">To Date
+                                                            <span className="text-danger">*</span>
+                                                        </label>
                                                         <DatePicker
                                                             selected={values.toDate}
                                                             onChange={(date) =>
@@ -416,8 +443,10 @@ const ProgramList = () => {
                                                         <ErrorMessage name="toDate" component="div" className="invalid-msg" />
                                                     </div>
 
-                                                    <div className="col-md-6 mb-3">
-                                                        <label className="form-label">Eligibility</label>
+                                                    <div className="col-md-4 mb-3">
+                                                        <label className="form-label">Eligibility
+                                                            <span className="text-danger">*</span>
+                                                        </label>
                                                         <Select
                                                             options={eligibilityOptions}
                                                             value={
@@ -433,25 +462,23 @@ const ProgramList = () => {
                                                     </div>
 
                                                     <div className="col-md-4 mb-3">
-                                                        <label className="form-label">Registration Fee Applicable</label>
-                                                        <Field className="form-control" name="isRegistration" as="select">
-                                                            <option value="">Select</option>
-                                                            <option value="Y">Yes</option>
-                                                            <option value="N">No</option>
-                                                        </Field>
-                                                        <ErrorMessage name="isRegistration" component="div" className="invalid-msg" />
+                                                        <label className="form-label">Offline RE Fee (₹)
+                                                            <span className="text-danger">*</span>
+                                                        </label>
+                                                        <Field className="form-control" name="offlineRegistrationFee" type="number" />
+                                                        <ErrorMessage name="offlineRegistrationFee" component="div" className="invalid-msg" />
                                                     </div>
 
-                                                    {values.isRegistration === "Y" && (
-                                                        <div className="col-md-8 mb-3">
-                                                            <label className="form-label">Registration Fee (₹)</label>
-                                                            <Field className="form-control" name="registrationFee" type="number" />
-                                                            <ErrorMessage name="registrationFee" component="div" className="invalid-msg" />
-                                                        </div>
-                                                    )}
+                                                    <div className="col-md-4 mb-3">
+                                                        <label className="form-label">Online RE Fee (₹)</label>
+                                                        <Field className="form-control" name="onlineRegistrationFee" type="number" />
+                                                        <ErrorMessage name="onlineRegistrationFee" component="div" className="invalid-msg" />
+                                                    </div>
 
                                                     <div className="col-md-8 mb-3">
-                                                        <label className="form-label">Venue</label>
+                                                        <label className="form-label">Venue
+                                                            <span className="text-danger">*</span>
+                                                        </label>
                                                         <Field
                                                             name="venue"
                                                             className="form-control"
