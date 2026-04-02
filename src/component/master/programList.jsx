@@ -46,6 +46,7 @@ const ProgramList = () => {
         toDate: null,
         offlineRegistrationFee: 0,
         onlineRegistrationFee: null,
+        noOfNomination: 0,
         venue: "",
     };
 
@@ -160,6 +161,7 @@ const ProgramList = () => {
             toDate: item?.toDate || null,
             offlineRegistrationFee: item?.offlineRegistrationFee || 0,
             onlineRegistrationFee: item?.onlineRegistrationFee || null,
+            noOfNomination: item?.noOfNomination || 0,
             venue: item?.venue || "",
         });
         setShowProgramModal(true);
@@ -187,6 +189,9 @@ const ProgramList = () => {
             .min(0, "Amount cannot be negative")
             .nullable()
             .transform((value, originalValue) => originalValue === "" ? null : value),
+        noOfNomination: Yup.string()
+            .required("No of Nomination is required")
+            .min(0, "Nomination cannot be negative"),
         venue: Yup.string().trim().required("Venue is required"),
     });
 
@@ -528,6 +533,12 @@ const ProgramList = () => {
                                                             </div>
                                                         </div>
                                                     )}
+
+                                                    <div className="col-md-4 mb-3">
+                                                        <label className="form-label">No of Nomination</label>
+                                                        <Field className="form-control" name="noOfNomination" type="number" />
+                                                        <ErrorMessage name="noOfNomination" component="div" className="invalid-msg" />
+                                                    </div>
 
                                                     <div className="col-md-8 mb-3">
                                                         <label className="form-label">Venue

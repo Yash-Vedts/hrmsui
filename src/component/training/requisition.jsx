@@ -14,6 +14,8 @@ import { handleApiError } from "../../service/master.service";
 import AlertConfirmation from "../../common/AlertConfirmation.component";
 import { usePermission } from "../../common/usePermission";
 import RequisitionPreview from "./requisitionPreview";
+import TrainingStepper from "./trainingStepper";
+import PaidTrainingFlow from "./paidTrainingFlow";
 
 
 const Requisition = () => {
@@ -293,8 +295,8 @@ const Requisition = () => {
     };
 
 
-    const freeSteps = ["Created by user", "Recommended by DH", "Approved by AD-HRT"];
-    const paidSteps = ["Created by user", "Submitted by user", "Forwarded by DH", "Checked by AD-HRT", "Recommended by Director", "Concurred by DFA", "Approved by Director"];
+    const freeSteps = ["Created by user", "Recommended by DH", "Verified By SA-HRT", "Approved by AD-HRT", "Approved By Director"];
+    const [flowType, setFlowType] = useState("within");
 
     return (
         <div>
@@ -323,20 +325,37 @@ const Requisition = () => {
             </div>
 
             <div className="container-fluid mt-4">
+                <div className="d-flex justify-content-end align-items-center mb-1 approval-header">
+
+                    <div className="approval-tabs">
+                        <button
+                            className={`tab-btn ${flowType === "within" ? "active-tab" : ""}`}
+                            onClick={() => setFlowType("within")}
+                        >
+                            Within Director's Power
+                        </button>
+
+                        <button
+                            className={`tab-btn ${flowType === "beyond" ? "active-tab" : ""}`}
+                            onClick={() => setFlowType("beyond")}
+                        >
+                            Beyond Director's Power
+                        </button>
+                    </div>
+                </div>
+
                 <div className="row g-4">
                     <div className="col-md-5">
-                        <Stepper
-                            title="Free Approval Flow"
+                        <TrainingStepper
+                            title="Free Training : Approval Flow"
                             steps={freeSteps}
-                            currentStep={3}
+                            currentStep={5}
                         />
                     </div>
 
                     <div className="col-md-7">
-                        <Stepper
-                            title="Paid Approval Flow"
-                            steps={paidSteps}
-                            currentStep={7}
+                        <PaidTrainingFlow
+                            flowType={flowType}
                         />
                     </div>
                 </div>
@@ -354,41 +373,3 @@ const Requisition = () => {
 }
 
 export default Requisition;
-
-const Stepper = ({ title, steps, currentStep }) => {
-    return (
-        <div className="card approval-card p-3 h-100">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 className="mb-0 approval-title">{title}</h6>
-                <span className="badge bg-light text-dark small">
-                    Step {currentStep}/{steps.length}
-                </span>
-            </div>
-
-            <div className="d-flex justify-content-between position-relative approval-wrapper">
-                {steps.map((step, index) => {
-                    const stepNumber = index + 1;
-                    const isActive = stepNumber <= currentStep;
-
-                    return (
-                        <div key={index} className="text-center flex-fill position-relative">
-                            <div
-                                className={`approval-step-sm mx-auto ${isActive ? "active-step-sm" : ""}`}
-                            >
-                                {stepNumber}
-                            </div>
-                            <div className="step-label">{step}</div>
-                        </div>
-                    );
-                })}
-
-                <div
-                    className="approval-progress-sm"
-                    style={{
-                        width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`,
-                    }}
-                />
-            </div>
-        </div>
-    );
-};

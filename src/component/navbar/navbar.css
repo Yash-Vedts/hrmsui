@@ -293,6 +293,45 @@
     color: #495057;
 }
 
+/* Header container */
+.approval-header {
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Tabs container */
+.approval-tabs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Tab button */
+.tab-btn {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+/* Active tab */
+.active-tab {
+    background: linear-gradient(135deg, #4c6ef5, #15aabf);
+    color: #fff;
+    border: none;
+}
+
+/* Hover */
+.tab-btn:hover {
+    background: #ffecb6;
+    color: blue;
+}
+
 .status-badge-modern {
     display: inline-block;
     padding: 4px 12px;
