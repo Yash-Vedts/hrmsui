@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import Navbar from "../navbar/Navbar";
 import { getCourseDashboardCount, getRequisitionDashboardCount, getRequisitionUserDashboardCount } from "../../service/dashboard.service";
 import "./dashboard.css";
-import { BiSolidBookmarkStar } from "react-icons/bi";
 import { FaBookReader, FaCheckCircle, FaClock, FaDatabase, FaList, FaShare, FaThumbsUp, FaUniversity } from "react-icons/fa";
 import { BsFillBookmarkStarFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
@@ -61,7 +60,7 @@ const Dashboard = () => {
     useEffect(() => {
         if (!financialYear) return;
 
-        if (["ROLE_ADMIN", "ROLE_AD_HRT", "ROLE_DH"].includes(roleName)) {
+        if (["ROLE_ADMIN", "ROLE_AD_HRT", "ROLE_SA_HRT", "ROLE_DH", "ROLE_DIRECTOR"].includes(roleName)) {
             fetchAdminDashboards();
         } else {
             fetchReqUserDashboard();
@@ -115,7 +114,7 @@ const Dashboard = () => {
     };
 
     const { totalFeedbackCount, reqPendingCount } = useMemo(() => {
-        const isAdminRole = ["ROLE_ADMIN", "ROLE_AD_HRT", "ROLE_DH"].includes(roleName);
+        const isAdminRole = ["ROLE_ADMIN", "ROLE_AD_HRT", "ROLE_SA_HRT", "ROLE_DH", "ROLE_DIRECTOR"].includes(roleName);
 
         // Create Set with String IDs to avoid type mismatch bugs
         const feedbackIdSet = new Set(feedbackList?.map(item => String(item.requisitionId)) || []);
@@ -166,7 +165,7 @@ const Dashboard = () => {
 
                 </div>
 
-                {["ROLE_ADMIN", "ROLE_AD_HRT", "ROLE_DH"].includes(roleName) ? (
+                {["ROLE_ADMIN", "ROLE_AD_HRT", "ROLE_SA_HRT", "ROLE_DH", "ROLE_DIRECTOR"].includes(roleName) ? (
                     <>
                         {/* ================= COURSE DASHBOARD ================= */}
 

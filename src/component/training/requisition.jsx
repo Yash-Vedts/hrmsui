@@ -14,8 +14,6 @@ import { handleApiError } from "../../service/master.service";
 import AlertConfirmation from "../../common/AlertConfirmation.component";
 import { usePermission } from "../../common/usePermission";
 import RequisitionPreview from "./requisitionPreview";
-import TrainingStepper from "./trainingStepper";
-import PaidTrainingFlow from "./paidTrainingFlow";
 
 
 const Requisition = () => {
@@ -134,29 +132,28 @@ const Requisition = () => {
 
                         {canEdit &&
                             <>
-                                {(item.status === 'AA' || item.status === 'REV'
-                                    || item.status === 'RR' || item.status === 'RV') && (
-                                        <>
-                                            <button
-                                                className="btn btn-sm btn-warning me-2"
-                                                onClick={() => handleEdit(item)}
-                                                data-tooltip-id="Tooltip"
-                                                data-tooltip-content="Edit"
-                                                data-tooltip-place="top"
-                                            >
-                                                <FaEdit className="fs-6" />
-                                            </button>
-                                            <button
-                                                className="btn btn-sm btn-primary me-2"
-                                                onClick={() => handleForward(item)}
-                                                data-tooltip-id="Tooltip"
-                                                data-tooltip-content="Forward"
-                                                data-tooltip-place="top"
-                                            >
-                                                <FaForward className="fs-6" />
-                                            </button>
-                                        </>
-                                    )}
+                                {["AA", "REV", "RS", "RR", "RV", "CR"].includes(item.status) && (
+                                    <>
+                                        <button
+                                            className="btn btn-sm btn-warning me-2"
+                                            onClick={() => handleEdit(item)}
+                                            data-tooltip-id="Tooltip"
+                                            data-tooltip-content="Edit"
+                                            data-tooltip-place="top"
+                                        >
+                                            <FaEdit className="fs-6" />
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-primary me-2"
+                                            onClick={() => handleForward(item)}
+                                            data-tooltip-id="Tooltip"
+                                            data-tooltip-content="Forward"
+                                            data-tooltip-place="top"
+                                        >
+                                            <FaForward className="fs-6" />
+                                        </button>
+                                    </>
+                                )}
 
                                 {Number(item.initiatingOfficer) === Number(empId) && item.status === 'AF' && (
                                     <button
@@ -171,7 +168,7 @@ const Requisition = () => {
                                 )}
 
                                 {Number(item.initiatingOfficer) === Number(empId) &&
-                                    !feedbackExists && item.status === 'AV' && (
+                                    !feedbackExists && (item.status === "CO" || item.status === "FA") && (
                                         <button
                                             className="btn btn-sm btn-secondary me-2"
                                             onClick={() => handleFeedbackClick(item)}
@@ -212,13 +209,74 @@ const Requisition = () => {
             requisitionNumber: item.requisitionNumber,
             programName: item.programName,
             fromDate: item.fromDate,
-            toDate: item.toDate
+            toDate: item.toDate,
+            registrationFee: item.registrationFee,
         }
         localStorage.setItem('transactionData', JSON.stringify(dto));
         window.open('/transaction', '_blank');
     }
 
     const handleAdd = () => {
+        const notApproved = [];
+        const feedbackMissing = [];
+
+        requisitionList.forEach(item => {
+            if (Number(item.initiatingOfficer) !== Number(empId)) return;
+
+            const feedbackExists = feedbackList?.some(
+                feedback => Number(feedback?.requisitionId) === Number(item?.requisitionId)
+            );
+
+            // Case 1: Status validation
+            if (!(item.status === "CO" || item.status === "FA")) {
+                notApproved.push(item.requisitionNumber);
+            }
+            // Case 2: Feedback validation
+            else if (!feedbackExists) {
+                feedbackMissing.push(item.requisitionNumber);
+            }
+        });
+
+        if (notApproved.length > 0 || feedbackMissing.length > 0) {
+            Swal.fire({
+                title: "Action Required",
+                icon: "info", // "info" or "warning" looks more professional
+                html: `
+                <div style="text-align: left; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6;">
+                    <p style="color: #555;">To proceed with adding a new entry, please ensure all your previous requisitions are finalized:</p>
+                    
+                    ${notApproved.length > 0 ? `
+                        <div style="margin-top: 15px; border-left: 4px solid #f39c12; padding-left: 10px;">
+                            <strong style="color: #e67e22;">Pending Approval</strong>
+                            <p style="font-size: 0.85rem; margin: 0; color: #666;">These require approval of director:</p>
+                            <div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">
+                                ${notApproved.map(req => `<span style="background: #fef5e7; border: 1px solid #f39c12; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${req}</span>`).join("")}
+                            </div>
+                        </div>
+                    ` : ""}
+
+                    ${feedbackMissing.length > 0 ? `
+                        <div style="margin-top: 15px; border-left: 4px solid #3498db; padding-left: 10px;">
+                            <strong style="color: #2980b9;">Feedback Required</strong>
+                            <p style="font-size: 0.85rem; margin: 0; color: #666;">Please submit feedback for these approved requisitions:</p>
+                            <div style="margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px;">
+                                ${feedbackMissing.map(req => `<span style="background: #ebf5fb; border: 1px solid #3498db; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${req}</span>`).join("")}
+                            </div>
+                        </div>
+                    ` : ""}
+                </div>
+            `,
+                showCloseButton: true,
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6",
+                customClass: {
+                    container: 'my-swal-container'
+                }
+            });
+
+            return;
+        }
+
         navigate("/req-add-edit");
     };
 
@@ -294,10 +352,6 @@ const Requisition = () => {
         }
     };
 
-
-    const freeSteps = ["Created by user", "Recommended by DH", "Verified By SA-HRT", "Approved by AD-HRT", "Approved By Director"];
-    const [flowType, setFlowType] = useState("within");
-
     return (
         <div>
             <Navbar />
@@ -322,43 +376,6 @@ const Requisition = () => {
                     ADD NEW
                 </button>
                 }
-            </div>
-
-            <div className="container-fluid mt-4">
-                <div className="d-flex justify-content-end align-items-center mb-1 approval-header">
-
-                    <div className="approval-tabs">
-                        <button
-                            className={`tab-btn ${flowType === "within" ? "active-tab" : ""}`}
-                            onClick={() => setFlowType("within")}
-                        >
-                            Within Director's Power
-                        </button>
-
-                        <button
-                            className={`tab-btn ${flowType === "beyond" ? "active-tab" : ""}`}
-                            onClick={() => setFlowType("beyond")}
-                        >
-                            Beyond Director's Power
-                        </button>
-                    </div>
-                </div>
-
-                <div className="row g-4">
-                    <div className="col-md-5">
-                        <TrainingStepper
-                            title="Free Training : Approval Flow"
-                            steps={freeSteps}
-                            currentStep={5}
-                        />
-                    </div>
-
-                    <div className="col-md-7">
-                        <PaidTrainingFlow
-                            flowType={flowType}
-                        />
-                    </div>
-                </div>
             </div>
 
             {showModal &&
