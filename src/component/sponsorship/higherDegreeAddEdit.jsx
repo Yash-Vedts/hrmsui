@@ -13,8 +13,8 @@ import { format } from "date-fns";
 import AlertConfirmation from "../../common/AlertConfirmation.component";
 
 const HigherDegreeAddEdit = () => {
-const navigate = useNavigate();
 
+const navigate = useNavigate();
 const location = useLocation();
 const degreeType =location.state?.degreeType || location.state?.editData?.degreeType ||"";
 
@@ -242,10 +242,10 @@ useEffect(() => {
             <div className="p-5">
                 <div className="card p-3 shadow-sm border-rounded">
                     <Formik
-                        initialValues={initialValues}
-                        validationSchema={validationSchema}
-                        onSubmit={handleSubmit}
-                        enableReinitialize
+                         initialValues={initialValues}
+                         validationSchema={validationSchema}
+                         onSubmit={handleSubmit}
+                         enableReinitialize
                     >
                         {({ setFieldValue, values }) => (
                             <Form autoComplete="off">

@@ -15,7 +15,6 @@ import FeedbackList from "../component/training/feedbackList";
 import Calendar from "../component/training/calendar";
 import AddEditRequisition from "../component/training/addEditRequisition";
 import SignAuthority from "../component/master/signAuthority";
-
 import config from "../environment/config.js"
 import { useState } from 'react';
 import { setLocalStorageData } from "../service/auth.service.jsx";
@@ -28,6 +27,10 @@ import HigherDegreeMtech from "../component/sponsorship/higherDegreeMtech.jsx";
 import HigherDegreePhD from "../component/sponsorship/higherDegreePhD.jsx";
 import HigherDegreeAddEdit from "../component/sponsorship/higherDegreeAddEdit.jsx";
 import RequisitionApprovedList from "../component/approval/requisitionApprovedList.jsx";
+import CepComponent from "../component/training/cep.jsx";
+import AddEditCepComponent from "../component/training/addEditcep.jsx";
+import DistributionComponent from "../component/training/distribution.jsx";
+import AddEditDistributionComponent from "../component/training/distributionaddEdit.jsx";
 
 function AppRoutes() {
 
@@ -139,6 +142,10 @@ function AppRoutes() {
         <Route path="/degree-phd" element={<HigherDegreePhD />} />
         <Route path="/higherDegree-add" element={<HigherDegreeAddEdit />} />
         <Route path="/req-approved-list" element={<RequisitionApprovedList />} />
+        <Route path="/cep" element={<CepComponent />} />
+        <Route path="/cep-add" element={<AddEditCepComponent />} />
+        <Route path="/hr-distribution" element={<DistributionComponent />}/>
+        <Route path="/hr-distribution-add" element={<AddEditDistributionComponent /> } />
       </Routes>
 
     </>

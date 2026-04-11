@@ -8,25 +8,30 @@ import { FaEdit } from "react-icons/fa";
 import { format } from "date-fns";
 
 const HigherDegreeMtech = () => {
+
     const navigate = useNavigate();
     const [sponsorships, setSponsorships] = useState([]);
+
     const columns = [
-        { name: "SN", selector: (row) => row.sn, sortable: true ,align: 'text-center'},
+        { name: "SN", selector: (row) => row.sn, sortable: true, align: 'text-center' },
         { name: "Emplopyee Name", selector: (row) => row.employeeName, sortable: true },
-        { name: "Subject", selector: (row) => row.subject, sortable: true, align: 'text-center' },
-        { name: "University", selector: (row) => row.university, sortable: true, align: 'text-center' },
-        { name: "Preference", selector: (row) => row.preference, sortable: true, align: 'text-center' },
-        { name: "City", selector: (row) => row.city, sortable: true, align: 'text-center' },
         { name: "From Date", selector: (row) => row.fromDate ? format(new Date(row.fromDate), "dd-MM-yyyy") : "", sortable: true, align: 'text-center' },
         { name: "To Date", selector: (row) => row.toDate ? format(new Date(row.toDate), "dd-MM-yyyy") : "", sortable: true, align: 'text-center' },
+        { name: "Period (In Days)", selector: (row) => row.period, sortable: true, align: 'text-center' },
+        { name: "Subject", selector: (row) => row.subject, sortable: true, align: 'text-start' },
+        { name: "University", selector: (row) => row.university, sortable: true, align: 'text-start' },
+        { name: "Preference", selector: (row) => row.preference, sortable: true, align: 'text-center' },
+        { name: "City", selector: (row) => row.city, sortable: true, align: 'text-start' },
+
         {
             name: "Expenditure (₹)", selector: (row) => row.expenditure
                 ? `${Number(row.expenditure).toLocaleString("en-IN")}`
                 : "-",
-            sortable: true, align: 'text-center'
+            sortable: true, align: 'text-end'
         },
         { name: "Action", selector: (row) => row.action, align: 'text-center' }
     ];
+
     const mappedData = () => {
         return sponsorships
             .filter(item => item.degreeType === "MTECH")
@@ -39,9 +44,11 @@ const HigherDegreeMtech = () => {
                     subject: item.subject || "NA",
                     university: item.university || "NA",
                     preference: item.preference || "NA",
+
                     city: item.city || "NA",
                     fromDate: item.fromDate || "NA",
                     toDate: item.toDate || "NA",
+                    period: item.period || "NA",
                     expenditure: item.expenditure || "-",
 
                     action: (
